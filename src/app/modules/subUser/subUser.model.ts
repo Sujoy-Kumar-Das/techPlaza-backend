@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import { Schema, model } from 'mongoose';
 import config from '../../config';
-import { IFullName, IUser, IUserMethods } from './user.interface';
+import { IFullName, ISubUserUser } from './subUser.interface';
 const fullNameSchema = new Schema<IFullName>(
   {
     firstName: {
@@ -21,7 +21,7 @@ const fullNameSchema = new Schema<IFullName>(
   },
 );
 
-const userSchema = new Schema<IUser, IUserMethods>({
+const userSchema = new Schema<ISubUserUser, IUserMethods>({
   name: {
     type: fullNameSchema,
     required: [true, 'Name is required.'],
@@ -65,25 +65,6 @@ const userSchema = new Schema<IUser, IUserMethods>({
     default: false,
   },
 });
-
-// hashed password
-userSchema.pre('save', async function (next) {
-  // eslint-disable-next-line @typescript-eslint/no-this-alias
-  const user = this; // doc
-  // hashing password and save into DB
-  user.password = await bcrypt.hash(
-    user.password,
-    Number(config.bcrypt_salt_rounds),
-  );
-  next();
-});
-
-// delete password form response data
-userSchema.methods.toJSON = function () {
-  const user = this.toObject();
-  delete user.password;
-  return user;
-};
 
 userSchema.statics.isUserExists = async function (email: string) {
   return await userModel.findOne({ email });

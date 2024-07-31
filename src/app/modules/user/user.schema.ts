@@ -26,7 +26,21 @@ export const userValidationSchema = z.object({
     lastPasswords: z.array(z.string()).default([]),
     lastPasswordChangeAt: z.date().optional(),
     wrongPasswordAttempt: z.number().default(0),
-    role: z.string({ required_error: 'Enter your role.' }).default('user'),
+    role: z.enum(['admin', 'manager', 'user']).default('user'),
+    status: z.enum(['in-progress', 'blocked']).default('in-progress'),
+    isDeleted: z.boolean().default(false),
+  }),
+});
+
+export const managerValidationSchema = z.object({
+  body: z.object({
+    name: fullNameSchema,
+    email: z.string().email('Invalid email format'),
+    isPasswordChange: z.boolean().default(false),
+    lastPasswords: z.array(z.string()).default([]),
+    lastPasswordChangeAt: z.date().optional(),
+    wrongPasswordAttempt: z.number().default(0),
+    role: z.enum(['admin', 'manager', 'user']).default('user'),
     status: z.enum(['in-progress', 'blocked']).default('in-progress'),
     isDeleted: z.boolean().default(false),
   }),
