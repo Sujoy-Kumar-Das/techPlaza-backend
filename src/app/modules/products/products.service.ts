@@ -1,17 +1,27 @@
+import mongoose from 'mongoose';
 import AppError from '../../errors/AppError';
 import { categoryModel } from '../categories/categories.model';
+import { IProductDetails } from '../productDetails/productDetails.interface';
+import productDetailsModel from '../productDetails/productDetails.model';
 import { IProduct } from './products.interface';
 import { productModel } from './products.model';
 
-const createProductService = async (payload: IProduct) => {
-  const { category, price, discount, title } = payload;
+type ICreateProduct = {
+  product: IProduct;
+  productDetails: IProductDetails;
+};
 
-  // check is the product already available
+const createProductService = async (payload: ICreateProduct) => {
+  const { product, productDetails } = payload;
+  const { category, price, discount, title } = product;
+
+  // change the title text format
+  product.title = title.toLowerCase();
+
+  // Check if the product already exists
   const isProductAvailable = await productModel.findOne({
-    title: new RegExp(`^${title}$`, 'i'),
+    title: product.title,
   });
-
-  // check if the product already exists
 
   if (isProductAvailable) {
     throw new AppError(
@@ -20,14 +30,14 @@ const createProductService = async (payload: IProduct) => {
     );
   }
 
-  // check is the category is available
+  // Check if the category exists
   const isCategoryExists = await categoryModel.findById(category);
 
   if (!isCategoryExists) {
     throw new AppError(404, 'This category is not found.');
   }
 
-  // calculate the discount and add the discount price field
+  // Calculate discount price
   if (discount) {
     const discountPrice = (price - price * (discount.percentage / 100)).toFixed(
       2,
@@ -35,8 +45,36 @@ const createProductService = async (payload: IProduct) => {
     discount.discountPrice = Number(discountPrice);
   }
 
-  const result = await productModel.create(payload);
-  return result;
+  // create a session
+  const session = await mongoose.startSession();
+
+  try {
+    // start the session
+    session.startTransaction();
+
+    // Create the product
+    const createProduct = await productModel.create([product], { session });
+
+    if (!createProduct.length) {
+      throw new AppError(500, 'failed to create product.');
+    }
+
+    // set the product id
+    productDetails.productId = createProduct[0]._id;
+
+    const result = await productDetailsModel.create([productDetails], {
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return result;
+  } catch (error) {
+    await session.abortTransaction();
+    throw new AppError(500, 'Failed to create product.');
+  } finally {
+    await session.endSession();
+  }
 };
 
 export const productService = {

@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post(
   '/product',
-  validateRequest(productValidationSchemas.createProductSchema),
+  // validateRequest(productValidationSchemas.createProductSchema),
   productController.createProductController,
 );
 

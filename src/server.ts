@@ -2,6 +2,7 @@ import { Server } from 'http';
 import mongoose from 'mongoose';
 import app from './app';
 import config from './app/config';
+import AppError from './app/errors/AppError';
 
 let server: Server;
 
@@ -13,6 +14,10 @@ async function main() {
       console.log(`app is listening on port ${config.port}`);
     });
   } catch (err) {
+    throw new AppError(
+      404,
+      'Something went wrong,please check your internet connection.',
+    );
     console.log(err);
   }
 }
